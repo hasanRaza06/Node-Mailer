@@ -1,31 +1,27 @@
 import express from "express";
-import dotenv from "dotenv";
 import { sendEmail } from "./mailer.js";
 
-dotenv.config();
-
 const app = express();
+const PORT = 3000;
+
 app.use(express.json());
 
-app.post("/send", async (req, res) => {
-  const { name, email, message, subject } = req.body;
+app.post("/send-email", async (req, res) => {
+  const { to, subject, text } = req.body;
 
-  if (!name || !email || !message || !subject) {
-    return res.status(400).send("All fields (name, email, message, subject) are required.");
+  if (!to || !subject || !text) {
+    return res.status(400).json({ message: "Missing required fields: to, subject, text" });
   }
 
-  const recipants = `${name} <${email}>`;
-
   try {
-    await sendEmail({ recipants, subject, message });
-    console.log("Message sent");
-    res.send(`Message successfully sent to ${email}`);
-  } catch (err) {
-    console.error("Error sending email:", err);
-    res.status(500).json({message:"Failed to send the email."});
-  }                       
+    const info = await sendEmail(to, subject, text);
+    res.status(200).json({ message: "Email sent successfully", info });
+  } catch (error) {
+    console.error("Error sending email:", error.message);
+    res.status(500).json({ message: "Failed to send email", error: error.message });
+  }
 });
 
-app.listen(5000, () => {
-  console.log("Your server is running on port 5000");
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
